@@ -1,0 +1,73 @@
+.cocina-page { min-height:100vh; background:#0f0f0f; color:#f0e8d8; font-family:system-ui,sans-serif; }
+
+/* Header */
+.cocina-header {
+  display:flex; align-items:center; gap:16px;
+  padding:12px 20px; background:#1a2535;
+  border-bottom:2px solid #C8A96A;
+  flex-wrap:wrap;
+}
+.cocina-logo   { font-size:18px; font-weight:700; color:#C8A96A; flex:1; }
+.cocina-clock  { font-size:24px; font-weight:700; color:#f0e8d8; font-variant-numeric:tabular-nums; }
+.cocina-status { display:flex; align-items:center; gap:6px; font-size:13px; color:#8faec7; }
+.cocina-dot    { width:9px; height:9px; border-radius:50%; }
+.cocina-dot.online  { background:#4a9a4a; }
+.cocina-dot.offline { background:#c94040; }
+.cocina-logout { background:none; border:1px solid #3a5070; color:#8faec7; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; }
+.cocina-logout:hover { border-color:#C8A96A; color:#C8A96A; }
+
+/* Estados vacíos */
+.cocina-loading { padding:60px; text-align:center; color:#5a7a96; font-size:16px; }
+.cocina-empty   { display:flex; flex-direction:column; align-items:center; justify-content:center; height:60vh; color:#3a5070; font-size:18px; gap:12px; }
+.cocina-empty-icon { font-size:48px; }
+
+/* Grid de pedidos */
+.cocina-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(300px,1fr));
+  gap:16px; padding:20px;
+}
+
+/* Tarjeta de pedido */
+.cocina-card {
+  background:#1a2535; border:2px solid #2a3d5c;
+  border-radius:12px; padding:18px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.cocina-card.urgent { border-color:#c94040; animation:pulse-danger 1.5s ease-in-out infinite; }
+@keyframes pulse-danger { 0%,100%{border-color:#c94040} 50%{border-color:#ff6b6b} }
+
+.ck-top      { display:flex; justify-content:space-between; align-items:center; }
+.ck-mesa     { font-size:22px; font-weight:700; color:#f0e8d8; }
+.ck-time     { font-size:14px; font-weight:600; color:#8faec7; }
+.ck-time.urgent { color:#c94040; font-size:16px; }
+.ck-customer { font-size:14px; color:#C8A96A; font-weight:500; }
+.ck-id       { font-size:11px; color:#3a5070; font-family:monospace; }
+
+/* Ítems */
+.ck-items    { display:flex; flex-direction:column; gap:5px; padding:10px; background:#0f1825; border-radius:8px; }
+.ck-item     { display:flex; align-items:baseline; gap:8px; font-size:16px; }
+.ck-item-qty { font-weight:700; color:#C8A96A; min-width:28px; font-size:18px; }
+.ck-item-name { color:#f0e8d8; font-weight:500; }
+.ck-item-note { font-size:13px; color:#8faec7; font-style:italic; }
+
+.ck-notes    { font-size:13px; color:#8faec7; font-style:italic; padding:6px 10px; background:#0f1825; border-radius:6px; }
+
+/* Botón despachar */
+.ck-ready-btn {
+  width:100%; padding:14px;
+  background:#4a9a4a; color:#fff;
+  border:none; border-radius:8px;
+  font-size:16px; font-weight:700;
+  cursor:pointer; transition:all .15s;
+  margin-top:4px;
+}
+.ck-ready-btn:hover  { background:#5abf5a; transform:scale(1.01); }
+.ck-ready-btn:active { transform:scale(0.99); }
+
+@media (max-width:480px) {
+  .cocina-grid { grid-template-columns:1fr; padding:12px; }
+  .ck-mesa { font-size:18px; }
+  .ck-item { font-size:14px; }
+  .ck-item-qty { font-size:15px; }
+}

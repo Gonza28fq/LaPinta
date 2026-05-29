@@ -1,0 +1,59 @@
+.historial-page { max-width:1200px; }
+.hist-header    { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.hist-title     { font-size:20px; font-weight:600; color:var(--text-primary); }
+.hist-subtitle  { font-size:13px; color:var(--text-secondary); margin-top:3px; }
+.hist-export    { font-size:12px; }
+
+.hist-filters      { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px; padding:14px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); }
+.hist-filter-group { display:flex; flex-direction:column; gap:4px; }
+.hist-filter-group label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+.hist-filter-group input, .hist-filter-group select { width:auto; min-width:120px; font-size:13px; padding:7px 10px; }
+
+.hist-totals      { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin-bottom:16px; }
+.hist-total-card  { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; }
+.htc-label        { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+.htc-val          { font-size:18px; font-weight:700; color:var(--text-primary); }
+.htc-val.accent   { color:var(--accent); }
+
+.hist-loading, .hist-empty { padding:48px; text-align:center; color:var(--text-muted); font-size:13px; }
+
+.hist-table-wrap { overflow-x:auto; }
+.hist-table      { width:100%; border-collapse:collapse; font-size:13px; }
+.hist-table th   { text-align:left; padding:8px 12px; font-size:11px; color:var(--text-muted); font-weight:500; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+.hist-table td   { padding:10px 12px; border-bottom:1px solid var(--border-light); vertical-align:middle; }
+.hist-row        { cursor:pointer; transition:background .1s; }
+.hist-row:hover td { background:var(--bg-hover); }
+.td-id    { font-family:monospace; font-weight:700; color:var(--text-primary); }
+.td-total { font-weight:600; color:var(--accent); white-space:nowrap; }
+.td-muted { color:var(--text-secondary); white-space:nowrap; }
+.hist-badge { font-size:10px; font-weight:500; padding:3px 8px; border-radius:10px; white-space:nowrap; }
+
+.hist-detalle-modal {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); width:100%; max-width:640px;
+  max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+}
+.hist-modal-body  { display:flex; flex:1; overflow:hidden; }
+.hist-items       { flex:1; padding:16px; overflow-y:auto; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:6px; }
+.hist-section-title { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.hist-item-row    { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border-light); font-size:13px; }
+.hist-item-qty    { font-weight:700; color:var(--accent); min-width:24px; }
+.hist-item-name   { flex:1; color:var(--text-primary); }
+.hist-item-price  { color:var(--accent); font-weight:500; white-space:nowrap; }
+.hist-item-total  { display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--text-primary); padding-top:8px; border-top:1px solid var(--border); margin-top:4px; }
+
+.hist-info        { width:200px; flex-shrink:0; padding:16px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
+.hist-info-row    { display:flex; justify-content:space-between; font-size:12px; }
+.hist-info-row span   { color:var(--text-muted); }
+.hist-info-row strong { color:var(--text-primary); }
+.hist-divider     { border:none; border-top:1px solid var(--border); margin:4px 0; }
+.hist-tl-row      { display:flex; align-items:center; gap:8px; font-size:12px; }
+.hist-tl-dot      { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.hist-tl-label    { flex:1; color:var(--text-secondary); }
+.hist-tl-time     { color:var(--text-muted); font-variant-numeric:tabular-nums; }
+
+@media(max-width:640px) {
+  .hist-modal-body { flex-direction:column; }
+  .hist-items      { border-right:none; border-bottom:1px solid var(--border); }
+  .hist-info       { width:100%; }
+}

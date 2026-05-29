@@ -1,0 +1,78 @@
+.emp-page    { max-width:960px; }
+.emp-header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.emp-title   { font-size:20px; font-weight:600; color:var(--text-primary); }
+.emp-subtitle{ font-size:13px; color:var(--text-secondary); margin-top:3px; }
+.emp-tabs    { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.emp-tab     { padding:9px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-size:13px; cursor:pointer; transition:all .15s; margin-bottom:-1px; }
+.emp-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.emp-loading { padding:40px; text-align:center; color:var(--text-muted); }
+
+.emp-grid  { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.emp-card  { display:flex; flex-direction:column; gap:10px; position:relative; padding:16px; }
+.emp-card.inactive { opacity:.5; }
+.emp-card-top { display:flex; justify-content:space-between; align-items:flex-start; }
+.emp-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; flex-shrink:0; }
+.emp-dot    { width:8px; height:8px; border-radius:50%; margin-top:4px; }
+.emp-info   { display:flex; flex-direction:column; gap:3px; }
+.emp-name   { font-size:14px; font-weight:500; color:var(--text-primary); }
+.emp-role-tag { font-size:11px; padding:2px 8px; border-radius:10px; width:fit-content; font-weight:500; }
+.emp-email  { font-size:11px; color:var(--text-muted); }
+.emp-rate   { font-size:12px; color:var(--accent); font-weight:500; margin-top:2px; }
+.emp-actions{ display:flex; gap:7px; flex-wrap:wrap; margin-top:4px; padding-top:10px; border-top:1px solid var(--border); }
+.emp-action-btn{
+  display:inline-flex;align-items:center;justify-content:center;min-height:30px;
+  padding:6px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg-secondary);color:var(--text-secondary);font-size:12px;
+  font-weight:500;line-height:1;cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s,transform 80ms;
+}
+.emp-action-btn:hover{background:var(--bg-hover);color:var(--text-primary);border-color:var(--accent)}
+.emp-action-btn:active{transform:scale(.98)}
+.emp-action-btn.pay{border-color:rgba(200,169,106,.45);color:var(--accent)}
+.emp-action-btn.danger{border-color:rgba(201,64,64,.35);color:var(--danger)}
+.emp-action-btn.success{border-color:rgba(74,154,74,.35);color:var(--success)}
+.emp-modal  { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); width:100%; max-width:460px; }
+.emp-modal-body { padding:20px; display:flex; flex-direction:column; gap:14px; }
+.hours-preview { font-size:13px; color:var(--text-secondary); background:var(--bg-secondary); padding:10px 12px; border-radius:var(--radius-sm); }
+.pago-total { display:flex; justify-content:space-between; font-size:14px; font-weight:600; color:var(--text-primary); padding:12px; background:rgba(200,169,106,.08); border-radius:var(--radius-sm); }
+.pago-total span:last-child { color:var(--accent); font-size:18px; }
+
+/* Auditoría modal */
+.auditoria-modal {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); width:100%; max-width:760px;
+  max-height:90vh; display:flex; flex-direction:column; overflow:hidden;
+}
+.aud-date-filter { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:12px 20px; background:var(--bg-secondary); border-bottom:1px solid var(--border); flex-shrink:0; }
+.aud-tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+.aud-tab  { padding:9px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-secondary); font-size:13px; cursor:pointer; margin-bottom:-1px; transition:all .15s; }
+.aud-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.aud-body { flex:1; overflow-y:auto; padding:16px; }
+.aud-loading, .aud-empty { padding:32px; text-align:center; color:var(--text-muted); font-size:13px; }
+
+.aud-resumen { display:flex; flex-direction:column; gap:16px; }
+.aud-metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+.aud-metric-card  { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; }
+.aud-metric-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+.aud-metric-val   { font-size:18px; font-weight:700; color:var(--text-primary); }
+.aud-metric-val.accent { color:var(--accent); }
+.aud-metric-val.warn   { color:var(--danger); }
+
+.aud-pagos-hist { display:flex; flex-direction:column; gap:6px; }
+.aud-sub-title  { font-size:12px; font-weight:500; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.aud-pago-row   { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-secondary); border-radius:6px; font-size:13px; }
+.aud-pago-total { font-weight:600; color:var(--accent); }
+.aud-pago-status { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg-hover); color:var(--text-muted); }
+.aud-pago-status.paid { background:rgba(74,154,74,.15); color:var(--success); }
+
+.aud-table-wrap { overflow-x:auto; }
+.aud-table { width:100%; border-collapse:collapse; font-size:13px; }
+.aud-table th { text-align:left; padding:7px 12px; font-size:11px; color:var(--text-muted); font-weight:500; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.04em; }
+.aud-table td { padding:9px 12px; border-bottom:1px solid var(--border-light); }
+.aud-table tr:hover td { background:var(--bg-hover); }
+.aud-td-muted  { color:var(--text-secondary); }
+.aud-td-accent { font-weight:600; color:var(--accent); }
+.aud-status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; background:var(--text-muted); }
+.aud-status-dot.st-billed   { background:var(--success); }
+.aud-status-dot.st-cancelled { background:var(--danger); }
+.aud-status-dot.st-pending  { background:var(--order-pending); }

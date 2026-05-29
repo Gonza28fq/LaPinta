@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "La Pinta",
+    "slug": "lapinta-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": { "backgroundColor": "#1a2535" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.lapinta.manager" },
+    "android": { "adaptiveIcon":{"backgroundColor":"#1a2535"}, "package":"com.lapinta.manager" },
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "apiUrl": "http://TU_IP_LOCAL:4000/api",
+      "socketUrl": "http://TU_IP_LOCAL:4000"
+    }
+  }
+}

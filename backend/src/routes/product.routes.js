@@ -1,0 +1,12 @@
+const router = require('express').Router()
+const { authenticate, authorize } = require('../middleware/auth.middleware')
+const p = require('../controllers/product.controller')
+router.use(authenticate)
+router.get('/', p.getProducts)
+router.get('/extras', p.getExtras)
+router.get('/:id', p.getProductById)
+router.post('/', authorize('owner','manager'), p.createProduct)
+router.patch('/:id', authorize('owner','manager'), p.updateProduct)
+router.patch('/:id/availability', authorize('owner','manager'), p.toggleAvailability)
+router.post('/adjust-prices', authorize('owner','manager'), p.adjustPrices)
+module.exports = router

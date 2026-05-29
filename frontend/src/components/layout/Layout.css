@@ -1,0 +1,30 @@
+.layout{display:flex;height:100vh;overflow:hidden;background:var(--bg-primary)}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform .25s ease;z-index:100}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sidebar-logo{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0}
+.sidebar-logo-img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent);flex-shrink:0;background:var(--bg-card)}
+.sidebar-brand-name{font-size:14px;font-weight:600;color:var(--text-primary)}
+.sidebar-brand-sub{font-size:10px;color:var(--text-muted);letter-spacing:.06em}
+.sidebar-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);color:var(--text-secondary);text-decoration:none;font-size:13px;transition:all .15s}
+.sidebar-link:hover{background:var(--bg-hover);color:var(--text-primary)}
+.sidebar-link.active{background:var(--bg-card);color:var(--accent);border-left:2px solid var(--accent)}
+.sidebar-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.sidebar-user{display:flex;align-items:center;gap:8px;padding:4px 4px 8px}
+.sidebar-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.sidebar-user-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+.sidebar-user-role{font-size:10px;color:var(--text-muted)}
+.sidebar-logout{width:100%;font-size:12px;padding:7px}
+.layout-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:48px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
+.topbar-menu-btn{background:none;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer;display:none;padding:4px 8px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.connection-dot{width:8px;height:8px;border-radius:50%}
+.connection-dot.online{background:var(--success)}
+.connection-dot.offline{background:var(--danger)}
+.notif-btn{position:relative;background:none;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer;padding:4px}
+.notif-badge{position:absolute;top:-2px;right:-4px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.layout-content{flex:1;overflow-y:auto;padding:20px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+@media(max-width:768px){.sidebar{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.sidebar-overlay{display:block}.topbar-menu-btn{display:block}.layout-content{padding:12px}}
