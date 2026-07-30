@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const id = axios.interceptors.response.use(r => r, async err => {
       const orig = err.config
-      if (err.response?.status === 401 && !orig._retry) {
+      if (err.response?.status === 401 && !orig._retry && !orig.url?.includes('/auth/login') && !orig.url?.includes('/auth/refresh'))  {
         orig._retry = true
         try {
           const rt = localStorage.getItem('refreshToken')
