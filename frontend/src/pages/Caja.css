@@ -31,11 +31,19 @@
 .caja-total{font-size:16px;font-weight:700;color:var(--accent)}
 .caja-actions{display:flex;gap:6px;margin-top:2px}
 .caja-btn{flex:1;font-size:12px;padding:6px}
-.cobro-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:400px}
+.cobro-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:640px;max-height:92vh;display:flex;flex-direction:column}
 .cobro-body{padding:20px;display:flex;flex-direction:column;gap:16px}
 .cobro-total-display{text-align:center;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-md)}
 .cobro-total-label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
 .cobro-total-amt{font-size:28px;font-weight:700;color:var(--accent)}
+.cobro-total-display small{display:block;margin-top:4px;color:var(--text-muted);font-size:11px}
+.cobro-items{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;background:var(--bg-secondary)}
+.cobro-item{display:grid;grid-template-columns:1fr 90px 64px;gap:8px;align-items:center;padding:7px;border-radius:var(--radius-sm);background:var(--bg-card)}
+.cobro-item.paid{opacity:.55}
+.cobro-item-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cobro-item-info strong{font-size:12px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cobro-item-info span{font-size:10px;color:var(--text-muted)}
+.cobro-price-input,.cobro-qty-input{font-size:12px;padding:6px 7px}
 .payment-methods{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pm-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px;border-radius:var(--radius-md);border:1.5px solid var(--border);background:var(--bg-secondary);cursor:pointer;transition:all .15s;font-size:12px;color:var(--text-secondary)}
 .pm-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(200,169,106,.08)}

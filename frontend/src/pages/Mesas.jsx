@@ -103,7 +103,7 @@ function MesaCard({ table, selected, onSelect, onDragEnd, isEditMode, onDelete }
   const dragStart = useRef(null)
   const isDragging = useRef(false)
 
-  const handleMouseDown = (e) => {
+  const handlePointerDown = (e) => {
     if (!isEditMode) return
     e.preventDefault()
     isDragging.current = false
@@ -117,8 +117,9 @@ function MesaCard({ table, selected, onSelect, onDragEnd, isEditMode, onDelete }
       if (el) { el.style.left = Math.max(0, dragStart.current.px + dx) + 'px'; el.style.top = Math.max(0, dragStart.current.py + dy) + 'px' }
     }
     const onUp = (me) => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      document.removeEventListener('pointercancel', onUp)
       if (isDragging.current) {
         const dx = me.clientX - dragStart.current.mx
         const dy = me.clientY - dragStart.current.my
@@ -127,8 +128,9 @@ function MesaCard({ table, selected, onSelect, onDragEnd, isEditMode, onDelete }
         onSelect(table)
       }
     }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+    document.addEventListener('pointercancel', onUp)
   }
 
   const handleClick = () => {
@@ -146,7 +148,7 @@ function MesaCard({ table, selected, onSelect, onDragEnd, isEditMode, onDelete }
       id={'mesa-' + table.id}
       className={'mesa-item' + (isSelected ? ' selected' : '') + (isEditMode ? ' editable' : '')}
       style={{ left: table.pos_x, top: table.pos_y, width: w, height: h, borderRadius: radius, borderColor: isSelected ? 'var(--accent)' : color + '66', boxShadow: isSelected ? '0 0 0 2px var(--accent)' : 'none' }}
-      onMouseDown={isEditMode ? handleMouseDown : undefined}
+      onPointerDown={isEditMode ? handlePointerDown : undefined}
       onClick={!isEditMode ? handleClick : undefined}
     >
       {/* Dot de estado */}
@@ -211,7 +213,7 @@ function MesaPanel({ table, onClose, onAction, onUpdateStatus }) {
             <button className="btn btn-primary mp-btn" onClick={() => setPedidoModal(true)}>+ Nuevo pedido</button>
           )}
           {table.status === 'occupied' && table.active_order_id && canTakeOrders && (
-            <button className="btn btn-primary mp-btn" onClick={() => setPedidoModal(true)}>+ Agregar consumos</button>
+            <button className="btn btn-primary mp-btn" onClick={() => setPedidoModal(true)}>Editar pedido / agregar consumos</button>
           )}
           {isManager && table.status === 'available' && (
             <button className="btn btn-ghost mp-btn" onClick={() => onUpdateStatus(table.id, 'reserved')}>Reservar</button>
@@ -267,11 +269,20 @@ export default function Mesas() {
       setTables(p => p.map(t => t.id === o.table_id ? { ...t, status: 'occupied', active_order_id: o.id, order_status: o.status, waiter_name: o.waiter_name, customer_name: o.customer_name } : t))
     }
     const free = ({ tableId }) => setTables(p => p.map(t => t.id === tableId ? { ...t, status: 'available', active_order_id: null, order_status: null, order_total: null } : t))
+    const reload = () => loadTables()
     socket.on('table:status_changed', upd)
     socket.on('order:new', newOrd)
+    socket.on('order:updated', reload)
+    socket.on('order:payment', reload)
     socket.on('table:available', free)
-    return () => { socket.off('table:status_changed', upd); socket.off('order:new', newOrd); socket.off('table:available', free) }
-  }, [socket])
+    return () => {
+      socket.off('table:status_changed', upd)
+      socket.off('order:new', newOrd)
+      socket.off('order:updated', reload)
+      socket.off('order:payment', reload)
+      socket.off('table:available', free)
+    }
+  }, [socket, loadTables])
 
   const handleDragEnd = useCallback((id, x, y) => {
     setTables(p => p.map(t => t.id === id ? { ...t, pos_x: x, pos_y: y } : t))

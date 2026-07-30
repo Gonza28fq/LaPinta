@@ -4,12 +4,21 @@ exports.getTables = async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT t.*,
+        CASE WHEN o.id IS NOT NULL THEN 'occupied'::table_status ELSE t.status END AS status,
         o.id AS active_order_id, o.status AS order_status,
-        o.total AS order_total, o.customer_name,
+        o.total AS order_total,
+        COALESCE(pay.paid_amount,0) AS paid_amount,
+        GREATEST(o.total - COALESCE(pay.paid_amount,0),0) AS remaining_total,
+        o.customer_name,
         u.name AS waiter_name
       FROM tables t
       LEFT JOIN orders o ON o.table_id = t.id AND o.status NOT IN ('billed','cancelled')
       LEFT JOIN users u ON o.waiter_id = u.id
+      LEFT JOIN (
+        SELECT order_id, SUM(amount) AS paid_amount
+        FROM payments
+        GROUP BY order_id
+      ) pay ON pay.order_id = o.id
       WHERE t.is_active = true ORDER BY t.number
     `)
     res.json(rows)
@@ -83,13 +92,15 @@ exports.updateStatus = async (req, res) => {
 
 exports.updatePosition = async (req, res) => {
   try {
-    const { pos_x, pos_y } = req.body
+    const pos_x = Math.round(req.body.pos_x)
+    const pos_y = Math.round(req.body.pos_y)
     const { rows: [table] } = await db.query(
       'UPDATE tables SET pos_x=$1, pos_y=$2, updated_at=NOW() WHERE id=$3 RETURNING *',
       [pos_x, pos_y, req.params.id]
     )
     res.json(table)
   } catch (err) {
+    console.error(err)
     res.status(500).json({ error: 'Error al actualizar posición' })
   }
 }

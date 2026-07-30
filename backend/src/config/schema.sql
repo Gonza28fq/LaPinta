@@ -73,7 +73,16 @@ CREATE TABLE IF NOT EXISTS orders (
   discount NUMERIC(12,2) NOT NULL DEFAULT 0, total NUMERIC(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   confirmed_at TIMESTAMPTZ, kitchen_at TIMESTAMPTZ, ready_at TIMESTAMPTZ,
-  delivered_at TIMESTAMPTZ, billed_at TIMESTAMPTZ
+  delivered_at TIMESTAMPTZ, billed_at TIMESTAMPTZ,
+  kitchen_completed_by UUID REFERENCES users(id),
+  kitchen_completed_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS bar_preparations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  bartender_id UUID NOT NULL REFERENCES users(id),
+  items_count INTEGER NOT NULL DEFAULT 0,
+  prepared_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,6 +90,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_id UUID REFERENCES products(id),
   product_name VARCHAR(100) NOT NULL, unit_price NUMERIC(10,2) NOT NULL,
   quantity INTEGER NOT NULL DEFAULT 1, subtotal NUMERIC(12,2) NOT NULL,
+  paid_quantity INTEGER NOT NULL DEFAULT 0,
   notes TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS order_item_extras (
@@ -96,6 +106,13 @@ CREATE TABLE IF NOT EXISTS payments (
   method payment_method NOT NULL, amount NUMERIC(12,2) NOT NULL,
   tip NUMERIC(10,2) NOT NULL DEFAULT 0, notes TEXT,
   paid_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS payment_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  order_item_id UUID NOT NULL REFERENCES order_items(id),
+  quantity INTEGER NOT NULL DEFAULT 1,
+  amount NUMERIC(12,2) NOT NULL
 );
 CREATE TABLE IF NOT EXISTS cash_closings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

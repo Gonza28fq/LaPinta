@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/layout/Layout'
-import { productsAPI } from '../services/api'
+import { productsAPI, cartaAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import './Productos.css'
@@ -207,10 +207,10 @@ export default function Productos() {
           </div>
           {canEdit && (
             <div className="productos-actions">
-              <button className="btn btn-ghost" onClick={() => window.open('http://localhost:4000/api/carta/html', '_blank')}>📄 Ver carta</button>
-              <button className="btn btn-ghost" onClick={() => window.open('http://localhost:4000/api/carta/html?type=bebidas', '_blank')}>Carta bebidas</button>
-              <button className="btn btn-ghost" onClick={() => window.open('http://localhost:4000/api/carta/html?type=tragos', '_blank')}>Carta tragos</button>
-              <button className="btn btn-ghost" onClick={() => setShowAjuste(true)}>📈 Ajuste inflación</button>
+              <button className="btn btn-ghost" onClick={() => window.open(cartaAPI.pdfUrl(), '_blank')}>Ver carta PDF</button>
+              <button className="btn btn-ghost" onClick={() => window.open(cartaAPI.pdfUrl('bebidas'), '_blank')}>Carta bebidas PDF</button>
+              <button className="btn btn-ghost" onClick={() => window.open(cartaAPI.pdfUrl('tragos'), '_blank')}>Carta tragos PDF</button>
+              <button className="btn btn-ghost" onClick={() => setShowAjuste(true)}>Ajuste inflacion</button>
               <button className="btn btn-primary" onClick={() => setShowNewModal(true)}>+ Producto</button>
             </div>
           )}

@@ -16,21 +16,84 @@ const METHODS = [
 function CobroModal({ order, onClose, onDone }) {
   const [method, setMethod] = useState('cash')
   const [tip, setTip] = useState('')
+  const [detail, setDetail] = useState(null)
+  const [payItems, setPayItems] = useState({})
   const [saving, setSaving] = useState(false)
-  const total = Number(order.total)
+  const paidAmount = Number(detail?.paid_amount ?? order.paid_amount ?? 0)
+  const orderTotal = Number(detail?.total ?? order.total)
+  const remainingTotal = Math.max(0, Number(detail?.remaining_total ?? order.remaining_total ?? (orderTotal - paidAmount)))
+  const selectedTotal = detail
+    ? (detail.items || []).reduce((sum, item) => {
+        const qty = Number(payItems[item.id] || 0)
+        return sum + qty * Number(item.unit_price)
+      }, 0)
+    : remainingTotal
   const tipAmt = parseFloat(tip) || 0
 
+  useEffect(() => {
+    ordersAPI.getById(order.id)
+      .then(data => {
+        setDetail(data)
+        const initial = {}
+        ;(data.items || []).forEach(item => {
+          initial[item.id] = Math.max(0, Number(item.quantity) - Number(item.paid_quantity || 0))
+        })
+        setPayItems(initial)
+      })
+      .catch(() => toast.error('Error al cargar detalle de cobro'))
+  }, [order.id])
+
+  const setItemQty = (item, qty) => {
+    const max = Math.max(0, Number(item.quantity) - Number(item.paid_quantity || 0))
+    const next = Math.max(0, Math.min(max, Number(qty) || 0))
+    setPayItems(prev => ({ ...prev, [item.id]: next }))
+  }
+
+  const updateItemPrice = async (item, value) => {
+    const price = parseFloat(value)
+    if (!Number.isFinite(price) || price < 0) return
+    try {
+      const items = (detail.items || []).map(i => ({
+        id: i.id,
+        quantity: Number(i.quantity),
+        unit_price: i.id === item.id ? price : Number(i.unit_price),
+        notes: i.notes,
+      }))
+      await ordersAPI.updateItems(order.id, { notes: detail.notes || '', items })
+      const updated = await ordersAPI.getById(order.id)
+      setDetail(updated)
+      toast.success('Precio actualizado')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'No se pudo actualizar precio')
+    }
+  }
+
   const handleCobrar = async (emitReceipt = false) => {
+    const amount = Number(selectedTotal.toFixed(2))
+    if (amount <= 0) { toast.error('Seleccioná productos para cobrar'); return }
     setSaving(true)
     const receiptWindow = emitReceipt ? openReceiptWindow() : null
     try {
-      const detail = emitReceipt ? await ordersAPI.getById(order.id) : null
-      await paymentsAPI.create({ order_id:order.id, method, amount:total, tip:tipAmt })
-      await ordersAPI.updateStatus(order.id, 'billed')
-      if (emitReceipt) printReceipt({ order, items: detail?.items || [], method, tip: tipAmt, targetWindow: receiptWindow })
-      toast.success('Cobrado $' + (total+tipAmt).toLocaleString('es-AR'))
+      const selectedItems = (detail?.items || [])
+        .map(item => {
+          const quantity = Number(payItems[item.id] || 0)
+          return quantity > 0 ? {
+            order_item_id: item.id,
+            quantity,
+            amount: quantity * Number(item.unit_price),
+          } : null
+        })
+        .filter(Boolean)
+      const payment = await paymentsAPI.create({ order_id:order.id, method, amount, tip:tipAmt, items:selectedItems })
+      if (emitReceipt) {
+        const receiptItems = (detail?.items || []).filter(item => Number(payItems[item.id] || 0) > 0)
+          .map(item => ({ ...item, quantity: Number(payItems[item.id]) }))
+        printReceipt({ order: detail || order, items: receiptItems, method, tip: tipAmt, targetWindow: receiptWindow })
+      }
+      toast.success('Cobrado $' + (amount+tipAmt).toLocaleString('es-AR'))
       onDone(); onClose()
-    } catch { toast.error('Error al registrar cobro') }
+      if (!payment.is_fully_paid) toast('Queda saldo pendiente en la mesa')
+    } catch (err) { toast.error(err.response?.data?.error || 'Error al registrar cobro') }
     finally { setSaving(false) }
   }
 
@@ -43,8 +106,40 @@ function CobroModal({ order, onClose, onDone }) {
         </div>
         <div className="cobro-body">
           <div className="cobro-total-display">
-            <span className="cobro-total-label">Total a cobrar</span>
-            <span className="cobro-total-amt">${total.toLocaleString('es-AR')}</span>
+            <span className="cobro-total-label">Saldo pendiente</span>
+            <span className="cobro-total-amt">${remainingTotal.toLocaleString('es-AR')}</span>
+            {paidAmount > 0 && <small>Ya cobrado: ${paidAmount.toLocaleString('es-AR')}</small>}
+          </div>
+          <div className="cobro-items">
+            {(detail?.items || []).map(item => {
+              const pending = Math.max(0, Number(item.quantity) - Number(item.paid_quantity || 0))
+              return (
+                <div key={item.id} className={'cobro-item' + (pending === 0 ? ' paid' : '')}>
+                  <div className="cobro-item-info">
+                    <strong>{item.product_name}</strong>
+                    <span>{pending} pendientes de {item.quantity}</span>
+                  </div>
+                  <input
+                    className="cobro-price-input"
+                    type="number"
+                    value={Number(item.unit_price)}
+                    min="0"
+                    disabled={pending === 0}
+                    onChange={e => setDetail(d => ({ ...d, items: d.items.map(i => i.id === item.id ? { ...i, unit_price: e.target.value } : i) }))}
+                    onBlur={e => updateItemPrice(item, e.target.value)}
+                  />
+                  <input
+                    className="cobro-qty-input"
+                    type="number"
+                    value={payItems[item.id] || 0}
+                    min="0"
+                    max={pending}
+                    disabled={pending === 0}
+                    onChange={e => setItemQty(item, e.target.value)}
+                  />
+                </div>
+              )
+            })}
           </div>
           <div className="form-row">
             <label>Medio de pago</label>
@@ -60,7 +155,8 @@ function CobroModal({ order, onClose, onDone }) {
             <label>Propina (opcional)</label>
             <input type="number" value={tip} onChange={e=>setTip(e.target.value)} placeholder="$0" min="0"/>
           </div>
-          {tipAmt>0 && <div className="cobro-con-propina">Total con propina: <strong>${(total+tipAmt).toLocaleString('es-AR')}</strong></div>}
+          <div className="cobro-con-propina">Seleccionado: <strong>${selectedTotal.toLocaleString('es-AR')}</strong></div>
+          {tipAmt>0 && <div className="cobro-con-propina">Total con propina: <strong>${(selectedTotal+tipAmt).toLocaleString('es-AR')}</strong></div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
@@ -68,7 +164,7 @@ function CobroModal({ order, onClose, onDone }) {
             Cobrar e imprimir
           </button>
           <button className="btn btn-primary" style={{minWidth:160}} onClick={() => handleCobrar(false)} disabled={saving}>
-            {saving ? 'Registrando...' : 'Cobrar $' + (total+tipAmt).toLocaleString('es-AR')}
+            {saving ? 'Registrando...' : 'Cobrar $' + (selectedTotal+tipAmt).toLocaleString('es-AR')}
           </button>
         </div>
       </div>
@@ -96,8 +192,8 @@ export default function Caja() {
   useEffect(()=>{
     if(!socket) return
     const r = ()=>loadAll()
-    ;['order:new','order:billed','order:confirmed'].forEach(e=>socket.on(e,r))
-    return ()=>['order:new','order:billed','order:confirmed'].forEach(e=>socket.off(e,r))
+    ;['order:new','order:updated','order:payment','order:billed','order:confirmed'].forEach(e=>socket.on(e,r))
+    return ()=>['order:new','order:updated','order:payment','order:billed','order:confirmed'].forEach(e=>socket.off(e,r))
   },[socket])
 
   const handleConfirm = async (order) => {

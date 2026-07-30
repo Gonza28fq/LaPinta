@@ -27,6 +27,22 @@ router.patch('/:id', authorize('owner'), async (req,res) => {
     res.json(u)
   } catch { res.status(500).json({error:'Error'}) }
 })
+router.patch('/:id/password', authorize('owner'), async (req,res) => {
+  try {
+    const { password } = req.body
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ error:'La contraseña debe tener al menos 6 caracteres' })
+    }
+    const hash = await bcrypt.hash(password,12)
+    const { rows:[u] } = await db.query(
+      'UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2 AND is_deleted=false RETURNING id,name,email,role',
+      [hash,req.params.id])
+    if(!u) return res.status(404).json({error:'No encontrado'})
+    res.json({ message:'Contraseña actualizada', user:u })
+  } catch {
+    res.status(500).json({error:'Error al actualizar contraseña'})
+  }
+})
 router.delete('/:id', authorize('owner'), async (req,res) => {
   try {
     if (req.params.id === req.user.id) return res.status(400).json({ error:'No podés eliminar tu propio usuario' })

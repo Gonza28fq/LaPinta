@@ -193,7 +193,6 @@ function CobroModal({ order, onClose, onDone }) {
     try {
       const detail = emitReceipt ? await ordersAPI.getById(order.id) : null
       await paymentsAPI.create({ order_id: order.id, method, amount: total, tip: tipAmt })
-      await ordersAPI.updateStatus(order.id, 'billed')
       if (emitReceipt) printReceipt({ order, items: detail?.items || [], method, tip: tipAmt, targetWindow: receiptWindow })
       toast.success('Mesa cerrada · $' + (total + tipAmt).toLocaleString('es-AR'))
       onDone()
@@ -302,7 +301,7 @@ export default function Pedidos() {
       setSelected(prev => prev?.id === o.id ? { ...prev, ...o } : prev)
     }
 
-    const events = ['order:new','order:confirmed','order:in_kitchen','order:ready','order:delivered','order:billed']
+    const events = ['order:new','order:updated','order:payment','order:confirmed','order:in_kitchen','order:ready','order:delivered','order:billed']
     events.forEach(e => socket.on(e, updateOrder))
 
     // Notificaciones visuales según rol
@@ -338,7 +337,7 @@ export default function Pedidos() {
 
     return () => {
       events.forEach(e => socket.off(e, updateOrder))
-      ;['order:new','order:confirmed','order:ready','order:bill_requested'].forEach(e => socket.off(e))
+      ;['order:new','order:updated','order:payment','order:confirmed','order:ready','order:bill_requested'].forEach(e => socket.off(e))
     }
   }, [socket, user])
 

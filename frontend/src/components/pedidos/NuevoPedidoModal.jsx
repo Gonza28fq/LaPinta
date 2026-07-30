@@ -33,7 +33,7 @@ function ResumenItem({ item, onRemove, onChangePrice, onChangeQty }) {
 
   const handlePriceBlur = () => {
     const val = parseFloat(priceInput)
-    if (!isNaN(val) && val >= 0) onChangePrice(item.product_id || item.custom_id, val)
+    if (!isNaN(val) && val >= 0) onChangePrice(item.id || item.product_id || item.custom_id, val)
     setEditingPrice(false)
   }
 
@@ -42,15 +42,18 @@ function ResumenItem({ item, onRemove, onChangePrice, onChangeQty }) {
   return (
     <div className="resumen-item-row">
       <div className="ri-qty-ctrl">
-        <button className="ri-qty-btn" onClick={() => onChangeQty(item.product_id || item.custom_id, -1)}>−</button>
+        <button className="ri-qty-btn" onClick={() => onChangeQty(item.id || item.product_id || item.custom_id, -1)}>−</button>
         <span className="ri-qty">{item.quantity}</span>
-        <button className="ri-qty-btn" onClick={() => onChangeQty(item.product_id || item.custom_id, 1)}>+</button>
+        <button className="ri-qty-btn" onClick={() => onChangeQty(item.id || item.product_id || item.custom_id, 1)}>+</button>
       </div>
       <div className="ri-info">
         <div className="ri-name">
           {item.custom && <span className="ri-custom-badge">✦</span>}
           {item.product_name}
         </div>
+        {Number(item.paid_quantity || 0) > 0 && (
+          <div className="ri-paid-note">{item.paid_quantity} ya cobrado</div>
+        )}
         <div className="ri-price-row">
           {editingPrice ? (
             <input
@@ -72,7 +75,7 @@ function ResumenItem({ item, onRemove, onChangePrice, onChangeQty }) {
           <span className="ri-subtotal">${Number(subtotal).toLocaleString('es-AR')}</span>
         </div>
       </div>
-      <button className="ri-remove" onClick={() => onRemove(item.product_id || item.custom_id)}>✕</button>
+      <button className="ri-remove" onClick={() => onRemove(item.id || item.product_id || item.custom_id)}>✕</button>
     </div>
   )
 }
@@ -81,6 +84,7 @@ function ResumenItem({ item, onRemove, onChangePrice, onChangeQty }) {
 export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
   const [products, setProducts] = useState([])
   const [items, setItems] = useState([])
+  const [removedItems, setRemovedItems] = useState([])
   const [customerName, setCustomerName] = useState(existingOrder?.customer_name || '')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [customerResults, setCustomerResults] = useState([])
@@ -105,6 +109,29 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
       .then(setProducts).catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!existingOrder?.id) return
+    setLoading(true)
+    ordersAPI.getById(existingOrder.id)
+      .then(detail => {
+        setCustomerName(detail.customer_name || '')
+        setNotes(detail.notes || '')
+        setItems((detail.items || []).map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          unit_price: Number(item.unit_price),
+          quantity: Number(item.quantity),
+          paid_quantity: Number(item.paid_quantity || 0),
+          extras: item.extras || [],
+          notes: item.notes || '',
+          custom: !item.product_id,
+        })))
+      })
+      .catch(() => toast.error('Error al cargar pedido'))
+      .finally(() => setLoading(false))
+  }, [existingOrder?.id])
 
   useEffect(() => {
     if (existingOrder) return
@@ -181,7 +208,7 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
   // ---- Cambiar precio de un ítem ----
   const handleChangePrice = (id, newPrice) => {
     setItems(prev => prev.map(i =>
-      (i.product_id === id || i.custom_id === id)
+      (i.id === id || i.product_id === id || i.custom_id === id)
         ? { ...i, unit_price: newPrice }
         : i
     ))
@@ -191,8 +218,12 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
   const handleChangeQty = (id, delta) => {
     setItems(prev => {
       const updated = prev.map(i => {
-        if (i.product_id !== id && i.custom_id !== id) return i
+        if (i.id !== id && i.product_id !== id && i.custom_id !== id) return i
         const newQty = i.quantity + delta
+        if (newQty < Number(i.paid_quantity || 0)) {
+          toast.error('No se puede bajar de lo ya cobrado')
+          return i
+        }
         return newQty <= 0 ? null : { ...i, quantity: newQty }
       }).filter(Boolean)
       return updated
@@ -201,7 +232,15 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
 
   // ---- Eliminar ítem ----
   const removeItem = (id) => {
-    setItems(prev => prev.filter(i => i.product_id !== id && i.custom_id !== id))
+    setItems(prev => {
+      const item = prev.find(i => i.id === id || i.product_id === id || i.custom_id === id)
+      if (item?.id && Number(item.paid_quantity || 0) > 0) {
+        toast.error('No se puede eliminar un item ya cobrado')
+        return prev
+      }
+      if (item?.id) setRemovedItems(r => [...r, { ...item, quantity: 0 }])
+      return prev.filter(i => i.id !== id && i.product_id !== id && i.custom_id !== id)
+    })
   }
 
   // ---- Qty rápida en la carta ----
@@ -223,7 +262,7 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
   // ---- Enviar pedido ----
   const handleSubmit = async () => {
     if (!items.length) { toast.error('Agregá al menos un producto'); return }
-    if (!existingOrder && !customerName.trim()) { toast.error('Ingresá el nombre del cliente'); return }
+    if (!existingOrder && !selectedCustomer?.id) { toast.error('Seleccioná un cliente agendado'); return }
     if (!existingOrder && orderType === 'delivery' && !deliveryAddress.trim()) { toast.error('Ingresá la dirección de entrega'); return }
     setSending(true)
     try {
@@ -240,14 +279,35 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
         }))
       }
       if (existingOrder) {
-        await ordersAPI.addItems(existingOrder.id, payload)
-        toast.success('Consumos agregados — Mesa ' + table.number)
+        const persisted = items.filter(i => i.id).concat(removedItems).map(i => ({
+          id: i.id,
+          unit_price: i.unit_price,
+          quantity: i.quantity,
+          notes: i.notes,
+        }))
+        const created = items.filter(i => !i.id)
+        if (persisted.length) await ordersAPI.updateItems(existingOrder.id, { notes, items: persisted })
+        if (created.length) {
+          await ordersAPI.addItems(existingOrder.id, {
+            notes: '',
+            items: created.map(i => ({
+              product_id: i.product_id,
+              product_name: i.product_name,
+              unit_price: i.unit_price,
+              quantity: i.quantity,
+              notes: i.notes,
+              extras: i.extras,
+              custom: i.custom || false,
+            }))
+          })
+        }
+        toast.success('Pedido actualizado - Mesa ' + table.number)
       } else {
         await ordersAPI.create({
           ...payload,
           table_id: table?.id || null,
-          customer_id: selectedCustomer?.id || null,
-          customer_name: customerName.trim(),
+          customer_id: selectedCustomer.id,
+          customer_name: selectedCustomer.name,
           order_type: orderType,
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : null,
         })
@@ -344,6 +404,9 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
                   Cliente agendado
                   <button type="button" onClick={() => setSelectedCustomer(null)}>Cambiar</button>
                 </div>
+              )}
+              {!existingOrder && customerName.trim() && !selectedCustomer && !searchingCustomers && (
+                <div className="customer-required-note">Seleccioná un cliente agendado de la lista para continuar.</div>
               )}
             </div>
 
@@ -458,7 +521,7 @@ export default function NuevoPedidoModal({ table, existingOrder, onClose }) {
               <div className="resumen-items">
                 {items.map(item => (
                   <ResumenItem
-                    key={item.product_id || item.custom_id}
+                    key={item.id || item.product_id || item.custom_id}
                     item={item}
                     onRemove={removeItem}
                     onChangePrice={handleChangePrice}

@@ -62,11 +62,13 @@ export default function Cocina() {
 
     socket.on('order:confirmed', upsertKitchenOrder)
     socket.on('kitchen:new_order', updateStatus)
+    socket.on('order:updated', updateStatus)
     socket.on('order:billed', removeOrder)
 
     return () => {
       socket.off('order:confirmed', upsertKitchenOrder)
       socket.off('kitchen:new_order', updateStatus)
+      socket.off('order:updated', updateStatus)
       socket.off('order:billed', removeOrder)
     }
   }, [socket])

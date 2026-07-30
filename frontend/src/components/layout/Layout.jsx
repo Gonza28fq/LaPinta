@@ -4,21 +4,26 @@ import { useAuth } from '../../context/AuthContext'
 import { useSocket } from '../../context/SocketContext'
 import NotificationPanel from './NotificationPanel'
 import ThemeToggle from './ThemeToggle'
+import {
+  LayoutDashboard, Home, LayoutGrid, ClipboardList, Wallet,
+  UtensilsCrossed, Users, UserCog, BarChart3, History,
+  ChefHat, Martini, Menu as MenuIcon, Bell,
+} from 'lucide-react'
 import './Layout.css'
 
 const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'D', roles: ['owner','manager'] },
-  { path: '/inicio', label: 'Inicio', icon: 'I', roles: ['waiter'] },
-  { path: '/mesas', label: 'Mesas', icon: 'M', roles: ['owner','manager','waiter'] },
-  { path: '/pedidos', label: 'Pedidos', icon: 'P', roles: ['owner','manager','waiter','cashier'] },
-  { path: '/caja', label: 'Caja', icon: 'C', roles: ['owner','manager','cashier'] },
-  { path: '/productos', label: 'Carta', icon: 'A', roles: ['owner','manager'] },
-  { path: '/clientes', label: 'Clientes', icon: 'CL', roles: ['owner','manager','cashier'] },
-  { path: '/empleados', label: 'Empleados', icon: 'E', roles: ['owner','manager'] },
-  { path: '/metricas', label: 'Metricas', icon: 'MT', roles: ['owner'] },
-  { path: '/historial', label: 'Historial', icon: 'H', roles: ['owner','manager','cashier'] },
-  { path: '/cocina', label: 'Cocina', icon: 'K', roles: ['owner','manager'] },
-  { path: '/barra', label: 'Barra', icon: 'B', roles: ['owner','manager','bartender'] },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['owner','manager'] },
+  { path: '/inicio', label: 'Inicio', icon: Home, roles: ['waiter'] },
+  { path: '/mesas', label: 'Mesas', icon: LayoutGrid, roles: ['owner','manager','waiter'] },
+  { path: '/pedidos', label: 'Pedidos', icon: ClipboardList, roles: ['owner','manager','waiter','cashier'] },
+  { path: '/caja', label: 'Caja', icon: Wallet, roles: ['owner','manager','cashier'] },
+  { path: '/productos', label: 'Carta', icon: UtensilsCrossed, roles: ['owner','manager'] },
+  { path: '/clientes', label: 'Clientes', icon: Users, roles: ['owner','manager','cashier'] },
+  { path: '/empleados', label: 'Empleados', icon: UserCog, roles: ['owner','manager'] },
+  { path: '/metricas', label: 'Metricas', icon: BarChart3, roles: ['owner'] },
+  { path: '/historial', label: 'Historial', icon: History, roles: ['owner','manager','cashier'] },
+  { path: '/cocina', label: 'Cocina', icon: ChefHat, roles: ['owner','manager'] },
+  { path: '/barra', label: 'Barra', icon: Martini, roles: ['owner','manager','bartender'] },
 ]
 
 const ROLE_LABEL = {
@@ -58,17 +63,20 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="sidebar-nav">
-          {visibleNav.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <span className="sidebar-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {visibleNav.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="sidebar-icon"><Icon size={20} strokeWidth={2} /></span>
+                <span>{item.label}</span>
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="sidebar-footer">
@@ -88,11 +96,13 @@ export default function Layout({ children }) {
 
       <div className="layout-main">
         <header className="topbar">
-          <button className="topbar-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>Menu</button>
+          <button className="topbar-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <MenuIcon size={22} />
+          </button>
           <div className="topbar-right">
             <div className={`connection-dot ${connected ? 'online' : 'offline'}`} title={connected ? 'Conectado' : 'Sin conexion'} />
             <button className="notif-btn" onClick={() => setNotifOpen(!notifOpen)}>
-              O
+              <Bell size={20} />
               {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
             </button>
           </div>

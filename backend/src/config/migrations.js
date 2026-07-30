@@ -89,7 +89,28 @@ const runMigrations = async () => {
   await db.query("UPDATE tables SET zone='fondo' WHERE zone='privado'")
   await db.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(20) NOT NULL DEFAULT 'mesa'")
   await db.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT")
+  await db.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS kitchen_completed_by UUID REFERENCES users(id)")
+  await db.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS kitchen_completed_at TIMESTAMPTZ")
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS bar_preparations (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      bartender_id UUID NOT NULL REFERENCES users(id),
+      items_count INTEGER NOT NULL DEFAULT 0,
+      prepared_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
   await db.query("ALTER TABLE order_items ALTER COLUMN product_id DROP NOT NULL")
+  await db.query("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS paid_quantity INTEGER NOT NULL DEFAULT 0")
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS payment_items (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+      order_item_id UUID NOT NULL REFERENCES order_items(id),
+      quantity INTEGER NOT NULL DEFAULT 1,
+      amount NUMERIC(12,2) NOT NULL
+    )
+  `)
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
   await db.query(`
     UPDATE customers c

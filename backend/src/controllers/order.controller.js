@@ -2,6 +2,7 @@ const db = require('../config/database')
 const { orderFlow } = require('../sockets/socket.handler')
 
 const BAR_CATEGORY = 'trago'
+const OPEN_STATUSES = ['pending','confirmed','in_kitchen','ready','delivered']
 
 const hasBarItems = (items) => items.some(i => i.category === BAR_CATEGORY)
 
@@ -75,16 +76,34 @@ const insertOrderItems = async (client, orderId, items) => {
   }
 }
 
+const recalcOrderTotal = async (client, orderId) => {
+  const { rows: [r] } = await client.query(
+    'SELECT COALESCE(SUM(subtotal),0) AS total FROM order_items WHERE order_id=$1',
+    [orderId])
+  const total = parseFloat(r?.total || 0)
+  const { rows: [updated] } = await client.query(
+    'UPDATE orders SET subtotal=$1,total=$1,updated_at=NOW() WHERE id=$2 RETURNING *',
+    [total, orderId])
+  return updated
+}
+
 exports.getOrders = async (req, res) => {
   try {
     const { status, table_id, waiter_id, date } = req.query
     let q = `
       SELECT o.*, t.number AS table_number, u.name AS waiter_name,
+        COALESCE(pay.paid_amount,0) AS paid_amount,
+        GREATEST(o.total - COALESCE(pay.paid_amount,0),0) AS remaining_total,
         COUNT(oi.id) AS items_count
       FROM orders o
       LEFT JOIN tables t ON o.table_id = t.id
       LEFT JOIN users u ON o.waiter_id = u.id
       LEFT JOIN order_items oi ON oi.order_id = o.id
+      LEFT JOIN (
+        SELECT order_id, SUM(amount) AS paid_amount
+        FROM payments
+        GROUP BY order_id
+      ) pay ON pay.order_id = o.id
       WHERE 1=1
     `
     const p = []
@@ -97,7 +116,7 @@ exports.getOrders = async (req, res) => {
       q += ` AND o.waiter_id=$${i++} AND o.status NOT IN ('billed','cancelled')`
       p.push(req.user.id)
     }
-    q += ' GROUP BY o.id, t.number, u.name ORDER BY o.created_at DESC'
+    q += ' GROUP BY o.id, t.number, u.name, pay.paid_amount ORDER BY o.created_at DESC'
     res.json((await db.query(q, p)).rows)
   } catch (e) {
     console.error(e)
@@ -108,10 +127,17 @@ exports.getOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const { rows: [order] } = await db.query(`
-      SELECT o.*, t.number AS table_number, u.name AS waiter_name
+      SELECT o.*, t.number AS table_number, u.name AS waiter_name,
+        COALESCE(pay.paid_amount,0) AS paid_amount,
+        GREATEST(o.total - COALESCE(pay.paid_amount,0),0) AS remaining_total
       FROM orders o
       LEFT JOIN tables t ON o.table_id = t.id
       LEFT JOIN users u ON o.waiter_id = u.id
+      LEFT JOIN (
+        SELECT order_id, SUM(amount) AS paid_amount
+        FROM payments
+        GROUP BY order_id
+      ) pay ON pay.order_id = o.id
       WHERE o.id = $1`, [req.params.id])
     if (!order) return res.status(404).json({ error: 'Pedido no encontrado' })
 
@@ -124,7 +150,13 @@ exports.getOrderById = async (req, res) => {
       WHERE oi.order_id = $1
       GROUP BY oi.id, p.category
       ORDER BY oi.created_at`, [order.id])
-    res.json({ ...order, items })
+    const { rows: payments } = await db.query(`
+      SELECT p.*, u.name AS cashier_name
+      FROM payments p
+      LEFT JOIN users u ON u.id = p.cashier_id
+      WHERE p.order_id=$1
+      ORDER BY p.paid_at`, [order.id])
+    res.json({ ...order, items, payments })
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al obtener pedido' })
@@ -143,12 +175,33 @@ exports.createOrder = async (req, res) => {
       await client.query('ROLLBACK')
       return res.status(400).json({ error: 'Sin items' })
     }
+    if (!customer_id) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({ error: 'Seleccioná un cliente agendado para continuar' })
+    }
+    if (table_id) {
+      const { rows: [active] } = await client.query(
+        `SELECT id FROM orders
+         WHERE table_id=$1 AND status = ANY($2::order_status[])
+         LIMIT 1 FOR UPDATE`,
+        [table_id, OPEN_STATUSES])
+      if (active) {
+        await client.query('ROLLBACK')
+        return res.status(409).json({ error: 'La mesa ya tiene un pedido activo' })
+      }
+    }
+
+    const { rows: [customer] } = await client.query('SELECT id,name FROM customers WHERE id=$1', [customer_id])
+    if (!customer) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({ error: 'Cliente no encontrado' })
+    }
 
     const { subtotal, enriched } = await buildOrderItems(client, items)
     const { rows: [order] } = await client.query(`
       INSERT INTO orders (table_id, customer_id, customer_name, waiter_id, notes, subtotal, total, status, order_type, delivery_address)
       VALUES ($1,$2,$3,$4,$5,$6,$6,'pending',$7,$8) RETURNING *`,
-      [table_id || null, customer_id || null, customer_name, req.user.id, notes, subtotal, order_type, delivery_address || null])
+      [table_id || null, customer.id, customer.name, req.user.id, notes, subtotal, order_type, delivery_address || null])
 
     await insertOrderItems(client, order.id, enriched)
 
@@ -158,7 +211,7 @@ exports.createOrder = async (req, res) => {
 
     await client.query('COMMIT')
 
-    const fullOrder = { ...order, waiter_name: req.user.name, items: enriched, table_number: null }
+    const fullOrder = { ...order, customer_name: customer.name, waiter_name: req.user.name, items: enriched, table_number: null }
     const io = req.app.get('io')
     orderFlow.created(io, fullOrder)
     if (hasBarItems(enriched)) orderFlow.barNew(io, fullOrder)
@@ -203,12 +256,82 @@ exports.addOrderItems = async (req, res) => {
     await client.query('COMMIT')
 
     const fullOrder = { ...updated, items: enriched }
+    orderFlow.updated(req.app.get('io'), fullOrder)
     if (hasBarItems(enriched)) orderFlow.barNew(req.app.get('io'), fullOrder)
     res.status(201).json(fullOrder)
   } catch (e) {
     await client.query('ROLLBACK')
     console.error(e)
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Error al agregar consumos' })
+  } finally {
+    client.release()
+  }
+}
+
+exports.updateOrderItems = async (req, res) => {
+  const client = await db.getClient()
+  try {
+    await client.query('BEGIN')
+    const { items, notes } = req.body
+    if (!items?.length) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({ error: 'Sin items' })
+    }
+
+    const { rows: [order] } = await client.query(
+      "SELECT * FROM orders WHERE id=$1 AND status NOT IN ('billed','cancelled')",
+      [req.params.id])
+    if (!order) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: 'Pedido activo no encontrado' })
+    }
+
+    for (const item of items) {
+      const id = item.id
+      const quantity = parseInt(item.quantity, 10)
+      const unitPrice = parseFloat(item.unit_price)
+      if (!id || !Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+        await client.query('ROLLBACK')
+        return res.status(400).json({ error: 'Items inválidos' })
+      }
+
+      const { rows: [current] } = await client.query(
+        'SELECT paid_quantity FROM order_items WHERE id=$1 AND order_id=$2',
+        [id, order.id])
+      if (!current) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({ error: 'Item no encontrado' })
+      }
+      if (quantity < Number(current.paid_quantity || 0)) {
+        await client.query('ROLLBACK')
+        return res.status(400).json({ error: 'No se puede reducir por debajo de lo ya cobrado' })
+      }
+
+      if (quantity === 0 && Number(current.paid_quantity || 0) === 0) {
+        await client.query('DELETE FROM order_items WHERE id=$1', [id])
+      } else {
+        await client.query(`
+          UPDATE order_items
+          SET quantity=$1, unit_price=$2, subtotal=$1*$2, notes=$3
+          WHERE id=$4 AND order_id=$5`,
+          [quantity, unitPrice, item.notes || null, id, order.id])
+      }
+    }
+
+    const updated = await recalcOrderTotal(client, order.id)
+    if (notes !== undefined) {
+      await client.query('UPDATE orders SET notes=$1,updated_at=NOW() WHERE id=$2', [notes || null, order.id])
+    }
+    await client.query('COMMIT')
+
+    const fullOrder = { ...updated }
+    orderFlow.updated(req.app.get('io'), fullOrder)
+    if (await orderHasBarItems(db, order.id)) orderFlow.barNew(req.app.get('io'), fullOrder)
+    res.json(fullOrder)
+  } catch (e) {
+    await client.query('ROLLBACK')
+    console.error(e)
+    res.status(500).json({ error: 'Error al editar pedido' })
   } finally {
     client.release()
   }
@@ -242,10 +365,19 @@ exports.updateStatus = async (req, res) => {
       return res.status(400).json({ error: `Transicion invalida: ${order.status} -> ${status}` })
     if (ROLES[status] && !ROLES[status].includes(req.user.role))
       return res.status(403).json({ error: 'Sin permiso para este cambio' })
+    if (status === 'billed') {
+      const { rows: [paid] } = await db.query(
+        'SELECT COALESCE(SUM(amount),0) AS total FROM payments WHERE order_id=$1',
+        [order.id])
+      if (parseFloat(paid?.total || 0) + 0.01 < parseFloat(order.total || 0)) {
+        return res.status(400).json({ error: 'Registrá el cobro antes de cerrar la mesa' })
+      }
+    }
 
     const tsMap = { confirmed:'confirmed_at', in_kitchen:'kitchen_at', ready:'ready_at', delivered:'delivered_at', billed:'billed_at' }
     let extra = tsMap[status] ? `,${tsMap[status]}=NOW()` : ''
     if (['confirmed','billed'].includes(status)) extra += `,cashier_id='${req.user.id}'`
+    if (status === 'ready' && req.user.role === 'kitchen') extra += `,kitchen_completed_by='${req.user.id}',kitchen_completed_at=NOW()`
 
     const { rows: [updated] } = await db.query(
       `UPDATE orders SET status=$1${extra},updated_at=NOW() WHERE id=$2 RETURNING *`,
@@ -273,6 +405,35 @@ exports.updateStatus = async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al actualizar estado' })
+  }
+}
+
+exports.markBarReady = async (req, res) => {
+  try {
+    if (!['bartender','manager','owner'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Sin permiso' })
+    }
+    const { rows: [order] } = await db.query(
+      "SELECT * FROM orders WHERE id=$1 AND status NOT IN ('billed','cancelled')",
+      [req.params.id])
+    if (!order) return res.status(404).json({ error: 'Pedido activo no encontrado' })
+
+    const { rows: [r] } = await db.query(`
+      SELECT COALESCE(SUM(oi.quantity),0)::int AS count
+      FROM order_items oi
+      JOIN products p ON p.id = oi.product_id
+      WHERE oi.order_id=$1 AND p.category=$2`, [order.id, BAR_CATEGORY])
+    const itemsCount = Number(r?.count || 0)
+    if (!itemsCount) return res.status(400).json({ error: 'El pedido no tiene tragos' })
+
+    await db.query(
+      'INSERT INTO bar_preparations (order_id,bartender_id,items_count) VALUES ($1,$2,$3)',
+      [order.id, req.user.id, itemsCount])
+    orderFlow.updated(req.app.get('io'), order)
+    res.json({ message: 'Tragos preparados', items_count: itemsCount })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al registrar barra' })
   }
 }
 

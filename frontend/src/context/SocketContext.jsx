@@ -13,7 +13,7 @@ export const SocketProvider = ({ children }) => {
     const socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:4000', { auth:{ token }, transports:['websocket'] })
     socket.on('connect', () => setConnected(true))
     socket.on('disconnect', () => setConnected(false))
-    const events = ['order:new','order:confirmed','order:in_kitchen','order:ready','order:bill_requested','order:billed','kitchen:new_order','bar:new_order','table:available']
+    const events = ['order:new','order:updated','order:payment','order:confirmed','order:in_kitchen','order:ready','order:bill_requested','order:billed','kitchen:new_order','bar:new_order','table:available']
     events.forEach(evt => socket.on(evt, data => setNotifications(prev => [{ id:Date.now(), event:evt, data, read:false, at:new Date() }, ...prev.slice(0,49)])))
     socketRef.current = socket
     return () => socket.disconnect()

@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api'
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000/api',
+  baseURL: API_BASE_URL,
 })
 
 api.interceptors.request.use((config) => {
@@ -30,8 +32,10 @@ export const ordersAPI = {
   getById:      (id)     => api.get(`/orders/${id}`),
   create:       (data)   => api.post('/orders', data),
   addItems:     (id, d)  => api.post(`/orders/${id}/items`, d),
+  updateItems:  (id, d)  => api.patch(`/orders/${id}/items`, d),
   updateStatus: (id, s)  => api.patch(`/orders/${id}/status`, { status: s }),
   requestBill:  (id)     => api.post(`/orders/${id}/bill-request`),
+  markBarReady: (id)     => api.post(`/orders/${id}/bar-ready`),
 }
 
 export const productsAPI = {
@@ -49,6 +53,11 @@ export const paymentsAPI = {
   getCashClosing: (date) => api.get('/payments/cash-closing', { params: { date } }),
 }
 
+export const cartaAPI = {
+  pdfUrl:  (type) => `${API_BASE_URL}/carta/pdf${type ? `?type=${type}` : ''}`,
+  htmlUrl: (type) => `${API_BASE_URL}/carta/html${type ? `?type=${type}` : ''}`,
+}
+
 export const customersAPI = {
   getAll:  (params) => api.get('/customers', { params }),
   create:  (data)   => api.post('/customers', data),
@@ -59,6 +68,7 @@ export const usersAPI = {
   getAll: () => api.get('/users'),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.patch(`/users/${id}`, data),
+  updatePassword: (id, password) => api.patch(`/users/${id}/password`, { password }),
   delete: (id) => api.delete(`/users/${id}`),
 }
 

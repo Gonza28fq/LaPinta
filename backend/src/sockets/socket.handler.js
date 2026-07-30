@@ -26,6 +26,8 @@ const notifyAll  = (io, event, data) => io.emit(event, data)
 
 const orderFlow = {
   created:      (io, o) => { notifyRole(io,'manager','order:new',o); notifyRole(io,'cashier','order:new',o); notifyRole(io,'owner','order:new',o) },
+  updated:      (io, o) => notifyAll(io,'order:updated',o),
+  paid:         (io, o) => notifyAll(io,'order:payment',o),
   confirmed:    (io, o) => { notifyRole(io,'manager','order:confirmed',o); notifyUser(io,o.waiter_id,'order:confirmed',o) },
   inKitchen:    (io, o) => { notifyRole(io,'manager','order:in_kitchen',o); notifyAll(io,'kitchen:new_order',o) },
   barNew:       (io, o) => { notifyRole(io,'bartender','bar:new_order',o); notifyRole(io,'manager','bar:new_order',o); notifyRole(io,'owner','bar:new_order',o) },

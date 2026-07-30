@@ -157,6 +157,54 @@ function PagoModal({ user, month, year, onClose, onSave }) {
   )
 }
 
+// ---- Modal cambiar contraseña ----
+function PasswordModal({ user, onClose }) {
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async () => {
+    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return }
+    if (password !== confirm) { toast.error('Las contraseñas no coinciden'); return }
+    setSaving(true)
+    try {
+      await api.patch(`/users/${user.id}/password`, { password })
+      toast.success('Contraseña actualizada')
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al actualizar contraseña')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="emp-modal">
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">Cambiar contraseña</h2>
+            <p className="modal-subtitle">{user.name}</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="emp-modal-body">
+          <div className="form-row"><label>Nueva contraseña</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete="new-password" />
+          </div>
+          <div className="form-row"><label>Confirmar contraseña</label>
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repetir contraseña" autoComplete="new-password" />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+            {saving ? 'Guardando...' : 'Actualizar contraseña'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---- Modal auditoría ----
 function AuditoriaModal({ user, onClose }) {
   const today = new Date().toISOString().split('T')[0]
@@ -323,6 +371,7 @@ export default function Empleados() {
   const [showNew, setShowNew] = useState(false)
   const [pagoUser, setPagoUser]       = useState(null)
   const [auditoriaUser, setAuditoriaUser] = useState(null)
+  const [passwordUser, setPasswordUser] = useState(null)
   const now = new Date()
   const month = now.getMonth() + 1
   const year  = now.getFullYear()
@@ -401,6 +450,7 @@ export default function Empleados() {
                 {isOwner && (
                   <div className="emp-actions">
                     <button className="emp-action-btn" onClick={() => setAuditoriaUser(user)}>Auditoria</button>
+                    <button className="emp-action-btn" onClick={() => setPasswordUser(user)}>Contraseña</button>
                     {user.role !== 'owner' && (
                       <>
                         <button className="emp-action-btn pay" onClick={() => setPagoUser(user)}>Pagar</button>
@@ -470,6 +520,9 @@ export default function Empleados() {
           user={auditoriaUser}
           onClose={() => setAuditoriaUser(null)}
         />
+      )}
+      {passwordUser && (
+        <PasswordModal user={passwordUser} onClose={() => setPasswordUser(null)} />
       )}
     </Layout>
   )

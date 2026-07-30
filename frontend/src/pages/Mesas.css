@@ -37,6 +37,8 @@
   border-radius: 12px;
   overflow: auto;
   min-height: 480px;
+  min-width: 900px;
+  touch-action: pan-x pan-y;
   background-image:
     linear-gradient(var(--border-light) 1px, transparent 1px),
     linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
@@ -58,6 +60,7 @@
 }
 .mesa-item:hover       { box-shadow: 0 4px 16px rgba(0,0,0,.3); }
 .mesa-item.editable    { cursor: grab; }
+.mesa-item.editable    { touch-action: none; }
 .mesa-item.editable:active { cursor: grabbing; }
 .mesa-item.selected    { z-index: 10; }
 
@@ -114,5 +117,6 @@
 @media (max-width: 768px) {
   .mesas-layout-wrap { flex-direction: column; }
   .mesa-panel { width: 100%; }
-  .mesas-canvas { min-height: 340px; }
+  .mesas-layout-wrap { overflow: auto; }
+  .mesas-canvas { flex: 0 0 auto; width: 920px; min-height: 620px; }
 }

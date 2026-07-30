@@ -44,7 +44,10 @@ export default function Barra() {
       const detail = await ordersAPI.getById(order.id).catch(() => null)
       if (!detail) return
       const barItems = (detail.items || []).filter(i => i.category === 'trago')
-      if (!barItems.length) return
+      if (!barItems.length) {
+        setOrders(prev => prev.filter(x => x.id !== detail.id))
+        return
+      }
       setOrders(prev => [{ ...detail, barItems }, ...prev.filter(x => x.id !== detail.id)])
       toast('Nuevo pedido de barra - Mesa ' + (detail.table_number || order.table_number || '-'), {
         duration: 8000,
@@ -54,16 +57,23 @@ export default function Barra() {
     const removeOrder = (order) => setOrders(prev => prev.filter(x => x.id !== order.id))
 
     socket.on('bar:new_order', onBarOrder)
+    socket.on('order:updated', onBarOrder)
     socket.on('order:billed', removeOrder)
     return () => {
       socket.off('bar:new_order', onBarOrder)
+      socket.off('order:updated', onBarOrder)
       socket.off('order:billed', removeOrder)
     }
   }, [socket])
 
-  const markPrepared = (orderId) => {
-    setOrders(prev => prev.filter(o => o.id !== orderId))
-    toast.success('Tragos preparados')
+  const markPrepared = async (orderId) => {
+    try {
+      await ordersAPI.markBarReady(orderId)
+      setOrders(prev => prev.filter(o => o.id !== orderId))
+      toast.success('Tragos preparados')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al registrar tragos')
+    }
   }
 
   return (
